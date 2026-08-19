@@ -3,167 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA INTEGRAL IMSS - UMF 40</title>
+    <title>IMSS - CONSULTORIO PRO</title>
     <style>
-        html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; background-color: #e5e7eb; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        .header { background: #0b5e3a; color: white; padding: 10px 20px; font-weight: bold; border-bottom: 3px solid #f59e0b; height: 40px; display: flex; align-items: center; justify-content: space-between; }
-        .wrapper { display: flex; height: calc(100vh - 63px); width: 100vw; }
-        .sidebar { width: 300px; background: #fff; border-right: 1px solid #ccc; overflow-y: auto; }
-        .main { flex: 1; padding: 20px; display: flex; flex-direction: column; background: #f3f4f6; }
-        
-        .paciente-item { padding: 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: 0.2s; }
-        .paciente-item:hover { background: #d1fae5; }
-        
-        /* Chat del Paciente */
-        .chat-box { flex: 1; background: white; border: 1px solid #ccc; border-radius: 8px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        .msg { padding: 10px 14px; border-radius: 8px; max-width: 70%; font-size: 14px; }
-        .msg-paciente { background: #e5e7eb; align-self: flex-start; color: #1f2937; }
-        .msg-medico { background: #0b5e3a; color: white; align-self: flex-end; }
-        
-        .input-area { display: flex; gap: 10px; }
-        .input-area input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-        .btn { padding: 10px 20px; background: #0b5e3a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-receta { background: #d97706; }
-        
-        /* Hoja Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
-        .hoja-receta { background: white; width: 90%; max-width: 450px; padding: 25px; box-shadow: 0 0 20px #000; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
-        .hoja-receta h2 { text-align: center; margin-top: 0; border-bottom: 2px solid #000; padding-bottom: 5px; }
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; display: flex; height: 100vh; }
+        .sidebar { width: 300px; background: white; border-right: 2px solid #ddd; overflow-y: auto; }
+        .main { flex: 1; display: flex; flex-direction: column; }
+        .header { background: #0b5e3a; color: white; padding: 15px; font-weight: bold; }
+        .chat-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .bubble { padding: 12px; border-radius: 15px; max-width: 80%; }
+        .paciente { background: #e0e0e0; align-self: flex-start; }
+        .medico { background: #0b5e3a; color: white; align-self: flex-end; }
+        .input-box { padding: 20px; background: white; border-top: 1px solid #ccc; display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; background: #d97706; color: white; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <span>IMSS DIGITAL - CONSULTORIO 3</span>
-    <small>MÉDICO EN TURNO: DR. FRANCISCO</small>
-</div>
-
-<div class="wrapper">
-    <div class="sidebar" id="listaPacientes"></div>
-    
-    <div class="main" id="areaTrabajo">
-        <h2 style="text-align:center; color:#6b7280; margin-top:100px;">👈 Selecciona un paciente de la lista para iniciar la consulta</h2>
-    </div>
-</div>
-
-<!-- Modal Receta -->
-<div class="modal" id="modalReceta">
-    <div class="hoja-receta">
-        <h2>RECETA MÉDICA IMSS</h2>
-        <p><strong>PACIENTE:</strong> <span id="rNombre"></span></p>
-        <p><strong>NSS:</strong> <span id="rNSS"></span></p>
-        <p><strong>FECHA:</strong> <span id="rFecha"></span></p>
-        <hr>
-        <p><strong>DIAGNÓSTICO:</strong> Malestar General / Consulta de Rutina</p>
-        <p><strong>INDICACIONES:</strong></p>
-        <p id="rMedicamento">- Paracetamol 500mg (1 tab c/8hrs por 3 días)<br>- Reposo absoluto y tomar agua.</p>
-        <br><br>
-        <p style="text-align:center;">__________________________________<br>FIRMA Y SELLO DEL MÉDICO</p>
-        <button class="btn" style="width:100%; margin-top:15px;" onclick="cerrarHoja()">FIRMAR Y DAR DE ALTA</button>
+<div class="sidebar" id="lista"></div>
+<div class="main">
+    <div class="header" id="tituloChat">Selecciona un paciente para la consulta</div>
+    <div class="chat-container" id="chat"></div>
+    <div class="input-box">
+        <input type="text" id="mensaje" placeholder="Escribe tu diagnóstico o pregunta...">
+        <button onclick="enviar()">Enviar</button>
     </div>
 </div>
 
 <script>
-    const nombres = ["Doña Lupita", "Don Beto", "Sr. Juan Pérez", "Sra. María Gómez", "Brayan Martínez", "Doña Chole", "Kevin Hernández"];
-    const quejas = [
-        "Doctor, me duele un buen la espalda desde ayer que cargué un bulto.",
-        "Oiga doc, me siento medio agripado y me duele la garganta, ¿no me da una incapacidad?",
-        "Buenas tardes doctor, nomás vengo por mi surtido de la presión.",
-        "Doc, me punza feo la cabeza y siento que me zumban los oídos.",
-        "¡Ay doctor! Me cayó mal la barbacoa del domingo y traigo una gastritis canija."
-    ];
+    const pacientes = ["Doña Lupita", "Don Beto", "Brayan", "Kevin", "Sra. María"];
+    const lista = document.getElementById('lista');
+    let pacienteActual = null;
+    let turnos = 0;
 
-    const pacientes = [];
-    for(let i=0; i<50; i++) {
-        const nom = nombres[i % nombres.length] + " " + (i+1);
-        pacientes.push({
-            id: i,
-            nombre: nom,
-            nss: "3412-88-00" + (i < 10 ? '0'+i : i),
-            queja: quejas[i % quejas.length],
-            chat: []
-        });
-    }
-
-    const lista = document.getElementById('listaPacientes');
     pacientes.forEach(p => {
         const div = document.createElement('div');
-        div.className = 'paciente-item';
-        div.innerHTML = `<strong>${p.nombre}</strong><br><small style="color:#6b7280">NSS: ${p.nss}</small>`;
-        div.onclick = () => abrirConsulta(p);
+        div.innerHTML = `<div style="padding:15px; border-bottom:1px solid #eee; cursor:pointer;">${p}</div>`;
+        div.onclick = () => iniciarConsulta(p);
         lista.appendChild(div);
     });
 
-    let pacienteActual = null;
+    function iniciarConsulta(nombre) {
+        pacienteActual = nombre;
+        turnos = 0;
+        document.getElementById('tituloChat').innerText = "Consulta con: " + nombre;
+        document.getElementById('chat').innerHTML = `<div class="bubble paciente">Doctor, buenos días... fíjese que me siento muy mal.</div>`;
+    }
 
-    function abrirConsulta(p) {
-        pacienteActual = p;
-        if(p.chat.length === 0) {
-            p.chat.push({ emisor: 'paciente', texto: p.queja });
-        }
+    function enviar() {
+        const input = document.getElementById('mensaje');
+        const txt = input.value;
+        if (!txt || !pacienteActual) return;
         
-        renderChat();
-    }
-
-    function renderChat() {
-        const area = document.getElementById('areaTrabajo');
-        area.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h3>Consulta: ${pacienteActual.nombre} (${pacienteActual.nss})</h3>
-                <button class="btn btn-receta" onclick="abrirReceta()">📝 GENERAR Y FIRMAR RECETA</button>
-            </div>
-            <div class="chat-box" id="chatBox"></div>
-            <div class="input-area">
-                <input type="text" id="inputMsg" placeholder="Escríbele al paciente (ej. '¿Desde cuándo le duele?', 'Tome asiento')..." onkeypress="if(event.key==='Enter') enviarMsg()">
-                <button class="btn" onclick="enviarMsg()">Responder</button>
-            </div>
-        `;
-
-        const chatBox = document.getElementById('chatBox');
-        pacienteActual.chat.forEach(m => {
-            const div = document.createElement('div');
-            div.className = `msg ${m.emisor === 'paciente' ? 'msg-paciente' : 'msg-medico'}`;
-            div.innerText = m.texto;
-            chatBox.appendChild(div);
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function enviarMsg() {
-        const input = document.getElementById('inputMsg');
-        const txt = input.value.trim();
-        if(!txt) return;
-
-        pacienteActual.chat.push({ emisor: 'medico', texto: txt });
+        // Mostrar mensaje del médico
+        const chat = document.getElementById('chat');
+        chat.innerHTML += `<div class="bubble medico">${txt}</div>`;
         input.value = '';
-        renderChat();
-
-        // Respuestas automáticas picantes del paciente
+        
+        turnos++;
+        
+        // Lógica de respuesta dramática
         setTimeout(() => {
-            const respuestas = [
-                "Entendido doctor, ¿pero sí me va a dar Paracetamol o algo más fuerte?",
-                "Uy doctor, ¿y no me puede dar unos días de descanso en el trabajo?",
-                "Gracias doc, ¿me lo tengo que tomar con alimentos?",
-                "Está bien doctor, confío en usted."
-            ];
-            const randomResp = respuestas[Math.floor(Math.random() * respuestas.length)];
-            pacienteActual.chat.push({ emisor: 'paciente', texto: randomResp });
-            renderChat();
-        }, 1200);
-    }
-
-    function abrirReceta() {
-        document.getElementById('rNombre').innerText = pacienteActual.nombre;
-        document.getElementById('rNSS').innerText = pacienteActual.nss;
-        document.getElementById('rFecha').innerText = new Date().toLocaleDateString();
-        document.getElementById('modalReceta').style.display = 'flex';
-    }
-
-    function cerrarHoja() {
-        alert("¡Receta firmada y enviada a la Farmacia! El paciente ha sido dado de alta.");
-        document.getElementById('modalReceta').style.display = 'none';
+            let respuesta = "";
+            if (turnos === 1) respuesta = "Ay, pues es que me duele todo el cuerpo, doctor. ¿No cree que sea algo grave?";
+            else if (turnos === 2) respuesta = "Sí, desde ayer en la noche... y aparte ando muy estresado por el trabajo, ¿usted cree que sea eso?";
+            else if (turnos === 3) respuesta = "Nombre doctor, si yo trabajo un buen... ¿no me puede dar una incapacidad de unos 3 días al menos?";
+            else respuesta = "Está bien doctor, usted es el que sabe. Muchas gracias, ya me voy porque me espera el camión.";
+            
+            chat.innerHTML += `<div class="bubble paciente">${respuesta}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }, 1000);
     }
 </script>
-
 </body>
 </html>
