@@ -2,95 +2,165 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SISTEMA INTEGRAL IMSS - UMF 40</title>
     <style>
-        body { background-color: #d1d5db; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
+        html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; background-color: #e5e7eb; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .header { background: #0b5e3a; color: white; padding: 10px 20px; font-weight: bold; border-bottom: 3px solid #f59e0b; height: 40px; display: flex; align-items: center; justify-content: space-between; }
+        .wrapper { display: flex; height: calc(100vh - 63px); width: 100vw; }
+        .sidebar { width: 300px; background: #fff; border-right: 1px solid #ccc; overflow-y: auto; }
+        .main { flex: 1; padding: 20px; display: flex; flex-direction: column; background: #f3f4f6; }
         
-        /* Barra superior */
-        .header { background: #0b5e3a; color: white; padding: 10px 20px; font-weight: bold; border-bottom: 3px solid #f59e0b; }
+        .paciente-item { padding: 12px; border-bottom: 1px solid #e5e7eb; cursor: pointer; transition: 0.2s; }
+        .paciente-item:hover { background: #d1fae5; }
         
-        /* Layout */
-        .wrapper { display: flex; height: 90vh; }
-        .sidebar { width: 300px; background: #fff; overflow-y: auto; border-right: 1px solid #ccc; }
-        .main { flex: 1; padding: 20px; }
+        /* Chat del Paciente */
+        .chat-box { flex: 1; background: white; border: 1px solid #ccc; border-radius: 8px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+        .msg { padding: 10px 14px; border-radius: 8px; max-width: 70%; font-size: 14px; }
+        .msg-paciente { background: #e5e7eb; align-self: flex-start; color: #1f2937; }
+        .msg-medico { background: #0b5e3a; color: white; align-self: flex-end; }
         
-        /* Estilo de paciente */
-        .paciente { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .paciente:hover { background: #e5e7eb; }
+        .input-area { display: flex; gap: 10px; }
+        .input-area input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        .btn { padding: 10px 20px; background: #0b5e3a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-receta { background: #d97706; }
         
-        /* La "Hoja" (Modal) */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .hoja-receta { background: white; width: 400px; padding: 30px; box-shadow: 0 0 10px #000; border: 1px solid #000; }
-        .hoja-receta h2 { text-align: center; border-bottom: 2px solid #000; }
+        /* Hoja Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
+        .hoja-receta { background: white; width: 90%; max-width: 450px; padding: 25px; box-shadow: 0 0 20px #000; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
+        .hoja-receta h2 { text-align: center; margin-top: 0; border-bottom: 2px solid #000; padding-bottom: 5px; }
     </style>
 </head>
 <body>
 
-<div class="header">IMSS DIGITAL - VENTANILLA DE ATENCIÓN MÉDICA - MATRÍCULA: 99382104</div>
+<div class="header">
+    <span>IMSS DIGITAL - CONSULTORIO 3</span>
+    <small>MÉDICO EN TURNO: DR. FRANCISCO</small>
+</div>
 
 <div class="wrapper">
-    <div class="sidebar" id="listaPacientes">
-        <!-- Los 100 pacientes se generan aquí -->
-    </div>
+    <div class="sidebar" id="listaPacientes"></div>
+    
     <div class="main" id="areaTrabajo">
-        <h1>Selecciona un paciente del listado</h1>
+        <h2 style="text-align:center; color:#6b7280; margin-top:100px;">👈 Selecciona un paciente de la lista para iniciar la consulta</h2>
     </div>
 </div>
 
-<!-- Ventana de la Hoja -->
+<!-- Modal Receta -->
 <div class="modal" id="modalReceta">
     <div class="hoja-receta">
-        <h2>RECETA INSTITUCIONAL</h2>
-        <p><strong>Paciente:</strong> <span id="rNombre"></span></p>
+        <h2>RECETA MÉDICA IMSS</h2>
+        <p><strong>PACIENTE:</strong> <span id="rNombre"></span></p>
         <p><strong>NSS:</strong> <span id="rNSS"></span></p>
-        <p><strong>Prescripción:</strong> Paracetamol 500mg, 1 cada 8hrs.</p>
+        <p><strong>FECHA:</strong> <span id="rFecha"></span></p>
+        <hr>
+        <p><strong>DIAGNÓSTICO:</strong> Malestar General / Consulta de Rutina</p>
+        <p><strong>INDICACIONES:</strong></p>
+        <p id="rMedicamento">- Paracetamol 500mg (1 tab c/8hrs por 3 días)<br>- Reposo absoluto y tomar agua.</p>
         <br><br>
-        <p>__________________________<br>Firma del Médico (Clic aquí para firmar)</p>
-        <button onclick="cerrarHoja()" style="width:100%; padding:10px; background:green; color:white; border:none; cursor:pointer;">PROCESAR Y FIRMAR</button>
+        <p style="text-align:center;">__________________________________<br>FIRMA Y SELLO DEL MÉDICO</p>
+        <button class="btn" style="width:100%; margin-top:15px;" onclick="cerrarHoja()">FIRMAR Y DAR DE ALTA</button>
     </div>
 </div>
 
 <script>
+    const nombres = ["Doña Lupita", "Don Beto", "Sr. Juan Pérez", "Sra. María Gómez", "Brayan Martínez", "Doña Chole", "Kevin Hernández"];
+    const quejas = [
+        "Doctor, me duele un buen la espalda desde ayer que cargué un bulto.",
+        "Oiga doc, me siento medio agripado y me duele la garganta, ¿no me da una incapacidad?",
+        "Buenas tardes doctor, nomás vengo por mi surtido de la presión.",
+        "Doc, me punza feo la cabeza y siento que me zumban los oídos.",
+        "¡Ay doctor! Me cayó mal la barbacoa del domingo y traigo una gastritis canija."
+    ];
+
     const pacientes = [];
-    const motivos = ["Dolor de espalda", "Gripe", "Incapacidad", "Revisión rutinaria", "Presión alta", "Tos crónica"];
-    
-    // Generar 100 pacientes
-    for(let i=0; i<100; i++) {
+    for(let i=0; i<50; i++) {
+        const nom = nombres[i % nombres.length] + " " + (i+1);
         pacientes.push({
             id: i,
-            nombre: "Paciente " + (i+1) + " García",
-            nss: "1234-88-000" + i,
-            motivo: motivos[i % motivos.length]
+            nombre: nom,
+            nss: "3412-88-00" + (i < 10 ? '0'+i : i),
+            queja: quejas[i % quejas.length],
+            chat: []
         });
     }
 
-    // Renderizar
     const lista = document.getElementById('listaPacientes');
     pacientes.forEach(p => {
         const div = document.createElement('div');
-        div.className = 'paciente';
-        div.innerHTML = `<strong>${p.nombre}</strong><br><small>${p.nss}</small>`;
-        div.onclick = () => abrirPaciente(p);
+        div.className = 'paciente-item';
+        div.innerHTML = `<strong>${p.nombre}</strong><br><small style="color:#6b7280">NSS: ${p.nss}</small>`;
+        div.onclick = () => abrirConsulta(p);
         lista.appendChild(div);
     });
 
-    function abrirPaciente(p) {
-        document.getElementById('areaTrabajo').innerHTML = `
-            <h2>Expediente de ${p.nombre}</h2>
-            <p><strong>NSS:</strong> ${p.nss}</p>
-            <p><strong>Motivo:</strong> ${p.motivo}</p>
-            <button onclick="abrirReceta('${p.nombre}', '${p.nss}')" style="padding:15px; font-size:16px;">Generar Receta (Abrir Hoja)</button>
-        `;
+    let pacienteActual = null;
+
+    function abrirConsulta(p) {
+        pacienteActual = p;
+        if(p.chat.length === 0) {
+            p.chat.push({ emisor: 'paciente', texto: p.queja });
+        }
+        
+        renderChat();
     }
 
-    function abrirReceta(n, nss) {
-        document.getElementById('rNombre').innerText = n;
-        document.getElementById('rNSS').innerText = nss;
+    function renderChat() {
+        const area = document.getElementById('areaTrabajo');
+        area.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3>Consulta: ${pacienteActual.nombre} (${pacienteActual.nss})</h3>
+                <button class="btn btn-receta" onclick="abrirReceta()">📝 GENERAR Y FIRMAR RECETA</button>
+            </div>
+            <div class="chat-box" id="chatBox"></div>
+            <div class="input-area">
+                <input type="text" id="inputMsg" placeholder="Escríbele al paciente (ej. '¿Desde cuándo le duele?', 'Tome asiento')..." onkeypress="if(event.key==='Enter') enviarMsg()">
+                <button class="btn" onclick="enviarMsg()">Responder</button>
+            </div>
+        `;
+
+        const chatBox = document.getElementById('chatBox');
+        pacienteActual.chat.forEach(m => {
+            const div = document.createElement('div');
+            div.className = `msg ${m.emisor === 'paciente' ? 'msg-paciente' : 'msg-medico'}`;
+            div.innerText = m.texto;
+            chatBox.appendChild(div);
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function enviarMsg() {
+        const input = document.getElementById('inputMsg');
+        const txt = input.value.trim();
+        if(!txt) return;
+
+        pacienteActual.chat.push({ emisor: 'medico', texto: txt });
+        input.value = '';
+        renderChat();
+
+        // Respuestas automáticas picantes del paciente
+        setTimeout(() => {
+            const respuestas = [
+                "Entendido doctor, ¿pero sí me va a dar Paracetamol o algo más fuerte?",
+                "Uy doctor, ¿y no me puede dar unos días de descanso en el trabajo?",
+                "Gracias doc, ¿me lo tengo que tomar con alimentos?",
+                "Está bien doctor, confío en usted."
+            ];
+            const randomResp = respuestas[Math.floor(Math.random() * respuestas.length)];
+            pacienteActual.chat.push({ emisor: 'paciente', texto: randomResp });
+            renderChat();
+        }, 1200);
+    }
+
+    function abrirReceta() {
+        document.getElementById('rNombre').innerText = pacienteActual.nombre;
+        document.getElementById('rNSS').innerText = pacienteActual.nss;
+        document.getElementById('rFecha').innerText = new Date().toLocaleDateString();
         document.getElementById('modalReceta').style.display = 'flex';
     }
 
     function cerrarHoja() {
-        alert("¡Receta procesada y firmada digitalmente! Se envió a la farmacia.");
+        alert("¡Receta firmada y enviada a la Farmacia! El paciente ha sido dado de alta.");
         document.getElementById('modalReceta').style.display = 'none';
     }
 </script>
